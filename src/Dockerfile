@@ -1,14 +1,24 @@
-# Stage 1: Build runtime image
-FROM eclipse-temurin:17-jdk
+# ---------- Stage 1: Build the project ----------
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
-# Set working directory inside container
 WORKDIR /app
 
-# Copy the generated jar file
-COPY target/*.jar app.jar
+# Copy pom and source
+COPY pom.xml .
+COPY src ./src
 
-# Expose port (Render will override via PORT env)
+# Build jar inside container
+RUN mvn clean package -DskipTests
+
+
+# ---------- Stage 2: Run the application ----------
+FROM eclipse-temurin:17-jdk
+
+WORKDIR /app
+
+# Copy jar from build stage
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
 
-# Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
